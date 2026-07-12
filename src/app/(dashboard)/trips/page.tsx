@@ -5,20 +5,20 @@ import { Plus, Search, Filter, Play, CheckCircle, XCircle, Loader2 } from "lucid
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import {
   Table,
@@ -28,6 +28,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Vehicle = { id: string; licensePlate: string; status: string };
 type Driver = { id: string; firstName: string; lastName: string; status: string };
@@ -50,7 +61,7 @@ export default function TripsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  
+
   // Form State
   const [newTrip, setNewTrip] = useState<Partial<Trip>>({});
   const [formError, setFormError] = useState("");
@@ -71,7 +82,7 @@ export default function TripsPage() {
       const tripsJson = await tripsRes.json();
       const vehiclesJson = await vehiclesRes.json();
       const driversJson = await driversRes.json();
-      
+
       if (tripsJson.data) setTrips(tripsJson.data);
       if (vehiclesJson.data) setVehicles(vehiclesJson.data);
       if (driversJson.data) setDrivers(driversJson.data);
@@ -132,7 +143,7 @@ export default function TripsPage() {
 
   const handleDispatch = async (tripId: string) => {
     try {
-      const res = await fetch(`/api/trips/${tripId}`, { 
+      const res = await fetch(`/api/trips/${tripId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "DISPATCHED" })
@@ -145,7 +156,7 @@ export default function TripsPage() {
 
   const handleComplete = async (tripId: string) => {
     try {
-      const res = await fetch(`/api/trips/${tripId}`, { 
+      const res = await fetch(`/api/trips/${tripId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "COMPLETED" })
@@ -157,14 +168,20 @@ export default function TripsPage() {
   };
 
   const handleCancel = async (tripId: string) => {
-    if (!confirm("Are you sure you want to cancel this trip?")) return;
     try {
-      const res = await fetch(`/api/trips/${tripId}`, { 
+      const res = await fetch(`/api/trips/${tripId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "CANCELLED" })
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "CANCELLED",
+        }),
       });
-      if (res.ok) fetchData();
+
+      if (res.ok) {
+        fetchData();
+      }
     } catch (err) {
       console.error(err);
     }
@@ -179,7 +196,7 @@ export default function TripsPage() {
           <h2 className="text-2xl font-bold tracking-tight text-foreground">Trips</h2>
           <p className="text-muted-foreground">Manage fleet dispatch, routing, and trip status.</p>
         </div>
-        
+
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger render={<Button className="bg-primary text-primary-foreground hover:bg-primary/90" />}>
             <Plus className="mr-2 h-4 w-4" /> Create Trip
@@ -198,19 +215,23 @@ export default function TripsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <label className="text-sm font-medium">Origin</label>
-                    <Input required value={newTrip.origin || ""} onChange={e => setNewTrip({...newTrip, origin: e.target.value})} />
+                    <Input required value={newTrip.origin || ""} onChange={e => setNewTrip({ ...newTrip, origin: e.target.value })} />
                   </div>
                   <div className="grid gap-2">
                     <label className="text-sm font-medium">Destination</label>
-                    <Input required value={newTrip.destination || ""} onChange={e => setNewTrip({...newTrip, destination: e.target.value})} />
+                    <Input required value={newTrip.destination || ""} onChange={e => setNewTrip({ ...newTrip, destination: e.target.value })} />
                   </div>
                 </div>
 
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">Assign Vehicle <span className="text-muted-foreground font-normal">(Available only)</span></label>
-                  <Select onValueChange={(v) => setNewTrip({...newTrip, vehicleId: v})}>
+                  <Select value={newTrip.vehicleId || ""} onValueChange={(v) => setNewTrip({ ...newTrip, vehicleId: v })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select vehicle" />
+                      <SelectValue
+                        placeholder="Select vehicle"
+                      >
+                        {vehicles.find(v => v.id === newTrip.vehicleId)?.licensePlate}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {getAvailableVehicles().map(v => (
@@ -228,9 +249,13 @@ export default function TripsPage() {
 
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">Assign Driver <span className="text-muted-foreground font-normal">(Available only)</span></label>
-                  <Select onValueChange={v => setNewTrip({...newTrip, driverId: v})}>
+                  <Select value={newTrip.driverId || ""} onValueChange={v => setNewTrip({ ...newTrip, driverId: v })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select driver" />
+                      <SelectValue placeholder="Select driver">
+                        {drivers.find(d => d.id === newTrip.driverId)
+                          ? `${drivers.find(d => d.id === newTrip.driverId)!.firstName} ${drivers.find(d => d.id === newTrip.driverId)!.lastName}`
+                          : "Select driver"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {getAvailableDrivers().map(d => (
@@ -297,9 +322,45 @@ export default function TripsPage() {
                         <Button variant="outline" size="sm" className="border-blue-500/30 text-blue-500 hover:bg-blue-500/10 hover:text-blue-400" onClick={() => handleDispatch(trip.id)}>
                           <Play className="mr-1.5 h-3.5 w-3.5" /> Dispatch
                         </Button>
-                        <Button variant="outline" size="sm" className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400" onClick={() => handleCancel(trip.id)}>
-                          <XCircle className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Cancel Trip?</AlertDialogTitle>
+
+                              <AlertDialogDescription>
+                                This will cancel the trip from{" "}
+                                <strong>{trip.origin}</strong> to{" "}
+                                <strong>{trip.destination}</strong>.
+                                <br />
+                                <br />
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>
+                                Keep Trip
+                              </AlertDialogCancel>
+
+                              <AlertDialogAction
+                                className="bg-red-600 hover:bg-red-700"
+                                onClick={() => handleCancel(trip.id)}
+                              >
+                                Cancel Trip
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     )}
                     {trip.status === "DISPATCHED" && (
@@ -307,9 +368,45 @@ export default function TripsPage() {
                         <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 hover:text-emerald-400" onClick={() => handleComplete(trip.id)}>
                           <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> Complete
                         </Button>
-                        <Button variant="outline" size="sm" className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400" onClick={() => handleCancel(trip.id)}>
-                          <XCircle className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Cancel Trip?</AlertDialogTitle>
+
+                              <AlertDialogDescription>
+                                This will cancel the trip from{" "}
+                                <strong>{trip.origin}</strong> to{" "}
+                                <strong>{trip.destination}</strong>.
+                                <br />
+                                <br />
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>
+                                Keep Trip
+                              </AlertDialogCancel>
+
+                              <AlertDialogAction
+                                className="bg-red-600 hover:bg-red-700"
+                                onClick={() => handleCancel(trip.id)}
+                              >
+                                Cancel Trip
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     )}
                     {(trip.status === "COMPLETED" || trip.status === "CANCELLED") && (

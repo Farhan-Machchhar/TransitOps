@@ -7,6 +7,5 @@ export default withAuth({
 });
 
 export const config = {
-  // matcher: ["/((?!api|_next/static|_next/image|favicon.ico|login).*)"],
-  matcher: [], // Temporarily bypass auth for UI check
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|login).*)"],
 };

@@ -47,9 +47,6 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     .toLowerCase()
     .replace(/\b\w/g, (l) => l.toUpperCase());
 
-  const isSpecial = (variant as string) === "success" || (variant as string) === "warning";
-  const badgeVariant = (isSpecial ? "default" : variant) as "default" | "secondary" | "destructive" | "outline";
-
   return (
     <span
       className={cn(

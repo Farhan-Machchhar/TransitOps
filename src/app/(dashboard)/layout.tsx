@@ -8,9 +8,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ROLE_ACCESS, UserRole } from "@/lib/rbac";
 
-import Sidebar from "@/components/layout/sidebar";
-import TopNavbar from "@/components/layout/top-navbar";
-
 type DashboardLayoutProps = {
   children: ReactNode;
 };
@@ -39,15 +36,6 @@ export default async function DashboardLayout({
     role: session.user.role as UserRole,
     image: session.user.image,
   };
-
-  // ------------------------------------
-  // RBAC Validation
-  // ------------------------------------
-
-  if (!ROLE_ACCESS[user.role]) {
-    redirect("/403");
-  }
-
   // ------------------------------------
   // Layout
   // ------------------------------------
