@@ -7,9 +7,9 @@ interface Vehicle { id: string; plateNumber: string; model: string; }
 interface Driver { id: string; name: string; licenseNumber: string; }
 interface Trip {
   id: string;
-  source: string;
+  origin: string;
   destination: string;
-  cargoWeight: number;
+  requiredCargo: number;
   plannedDistance: number;
   status: string;
   vehicle?: Vehicle;
@@ -247,9 +247,9 @@ export default function TripsPage() {
                 {trips.map(trip => (
                   <tr key={trip.id} className="text-gray-200 hover:bg-gray-750 transition-colors">
                     <td className="px-6 py-4 font-medium">
-                      {trip.source} → {trip.destination}
+                      {trip.origin} → {trip.destination}
                     </td>
-                    <td className="px-6 py-4">{trip.cargoWeight}</td>
+                    <td className="px-6 py-4">{trip.requiredCargo}</td>
                     <td className="px-6 py-4">{trip.plannedDistance}</td>
                     <td className="px-6 py-4">{trip.vehicle?.plateNumber ?? '—'}</td>
                     <td className="px-6 py-4">{trip.driver?.name ?? '—'}</td>

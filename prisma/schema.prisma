@@ -6,6 +6,92 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(DISPATCHER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Vehicle {
+  id              String           @id @default(cuid())
+  make            String
+  model           String
+  year            Int
+  licensePlate    String           @unique
+  status          VehicleStatus    @default(AVAILABLE)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  cargoCapacity   Int              @default(0)
+  expenses        Expense[]
+  fuelLogs        FuelLog[]
+  maintenanceLogs MaintenanceLog[]
+  trips           Trip[]
+}
+
+model Driver {
+  id            String       @id @default(cuid())
+  firstName     String
+  lastName      String
+  licenseNumber String       @unique
+  status        DriverStatus @default(AVAILABLE)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  licenseExpiry DateTime?
+  trips         Trip[]
+}
+
+model Trip {
+  id            String     @id @default(cuid())
+  vehicleId     String
+  driverId      String
+  status        TripStatus @default(DRAFT)
+  origin        String
+  destination   String
+  startTime     DateTime?
+  endTime       DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  requiredCargo Int?
+  driver        Driver     @relation(fields: [driverId], references: [id])
+  vehicle       Vehicle    @relation(fields: [vehicleId], references: [id])
+}
+
+model MaintenanceLog {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  description String
+  cost        Float
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+}
+
+model FuelLog {
+  id        String   @id @default(cuid())
+  vehicleId String
+  gallons   Float
+  cost      Float
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  description String
+  amount      Float
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+}
+
 enum Role {
   ADMIN
   DISPATCHER
@@ -33,90 +119,4 @@ enum TripStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
-}
-
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  role      Role     @default(DISPATCHER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Vehicle {
-  id              String           @id @default(cuid())
-  make            String
-  model           String
-  year            Int
-  licensePlate    String           @unique
-  status          VehicleStatus    @default(AVAILABLE)
-  cargoCapacity   Int              @default(0)   // max cargo weight (kg)
-  trips           Trip[]
-  maintenanceLogs MaintenanceLog[]
-  fuelLogs        FuelLog[]
-  expenses        Expense[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-}
-
-model Driver {
-  id             String       @id @default(cuid())
-  firstName      String
-  lastName       String
-  licenseNumber  String       @unique
-  status         DriverStatus @default(AVAILABLE)
-  licenseExpiry  DateTime?    // null = no expiry enforcement
-  trips          Trip[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-}
-
-model Trip {
-  id        String     @id @default(cuid())
-  vehicleId String
-  vehicle   Vehicle    @relation(fields: [vehicleId], references: [id])
-  driverId  String
-  driver    Driver     @relation(fields: [driverId], references: [id])
-  status    TripStatus @default(DRAFT)
-  origin    String
-  destination String
-  requiredCargo Int?      // cargo weight required for this trip (kg)
-  startTime DateTime?
-  endTime   DateTime?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-}
-
-model MaintenanceLog {
-  id          String   @id @default(cuid())
-  vehicleId   String
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
-  description String
-  cost        Float
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model FuelLog {
-  id        String   @id @default(cuid())
-  vehicleId String
-  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id])
-  gallons   Float
-  cost      Float
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Expense {
-  id          String   @id @default(cuid())
-  vehicleId   String
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
-  description String
-  amount      Float
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }

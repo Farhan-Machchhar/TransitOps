@@ -35,7 +35,7 @@ export class TripService {
     // create draft trip
     return prisma.trip.create({
       data: {
-        source,
+        origin: source,
         destination,
         requiredCargo: cargoWeight,
         vehicleId,

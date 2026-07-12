@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const trips = await prisma.trip.findMany({
     include: { vehicle: true, driver: true },
   });
-  return success(trips);
+  return NextResponse.json(success(trips));
 }
 
 // POST /api/trips – create a new draft trip (requires auth)
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       vehicleId: body.vehicleId,
       driverId: body.driverId,
     });
-    return success(trip);
+    return NextResponse.json(success(trip));
   } catch (e: any) {
     return NextResponse.json(error(e.message ?? 'Failed to create trip', 'CREATE_TRIP_ERROR'), { status: 400 });
   }
