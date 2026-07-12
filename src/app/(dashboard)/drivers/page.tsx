@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Search, Filter, AlertTriangle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Search, Filter, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -31,25 +31,15 @@ import {
 
 type Driver = {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   licenseNumber: string;
-  licenseCategory: string;
-  licenseExpiry: string; // ISO date string
-  contact: string;
-  safetyScore: number;
-  status: "AVAILABLE" | "ON_TRIP" | "OFF_DUTY" | "SUSPENDED" | "EXPIRED_LICENSE";
+  status: "AVAILABLE" | "ON_TRIP" | "SUSPENDED" | "EXPIRED_LICENSE";
 };
 
-const INITIAL_DRIVERS: Driver[] = [
-  { id: "1", name: "Ramesh Kumar", licenseNumber: "TN-12-3456", licenseCategory: "HMV", licenseExpiry: "2027-05-12", contact: "+91 9876543210", safetyScore: 95, status: "AVAILABLE" },
-  { id: "2", name: "Suresh Singh", licenseNumber: "MH-45-7890", licenseCategory: "HMV", licenseExpiry: "2024-11-20", contact: "+91 8765432109", safetyScore: 88, status: "ON_TRIP" },
-  { id: "3", name: "Kiran Patel", licenseNumber: "GJ-01-2222", licenseCategory: "LMV", licenseExpiry: "2026-07-25", contact: "+91 7654321098", safetyScore: 92, status: "OFF_DUTY" },
-  { id: "4", name: "Amit Sharma", licenseNumber: "DL-05-5555", licenseCategory: "HMV", licenseExpiry: "2026-01-10", contact: "+91 6543210987", safetyScore: 65, status: "SUSPENDED" },
-  { id: "5", name: "Vikram Reddy", licenseNumber: "TS-09-9999", licenseCategory: "LMV", licenseExpiry: "2026-08-01", contact: "+91 5432109876", safetyScore: 80, status: "AVAILABLE" },
-];
-
 export default function DriversPage() {
-  const [drivers, setDrivers] = useState<Driver[]>(INITIAL_DRIVERS);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -58,44 +48,74 @@ export default function DriversPage() {
   const [newDriver, setNewDriver] = useState<Partial<Driver>>({
     status: "AVAILABLE",
   });
+  const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchDrivers();
+  }, []);
+
+  const fetchDrivers = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/drivers");
+      const json = await res.json();
+      if (json.data) {
+        setDrivers(json.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch drivers", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredDrivers = drivers.filter(d => {
-    const matchesSearch = d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          d.licenseNumber.toLowerCase().includes(searchQuery.toLowerCase());
+    const fullName = `${d.firstName} ${d.lastName}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchQuery.toLowerCase()) || 
+                          d.licenseNumber?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "ALL" || d.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const handleAddDriver = (e: React.FormEvent) => {
+  const handleAddDriver = async (e: React.FormEvent) => {
     e.preventDefault();
-    const driver: Driver = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: newDriver.name!,
-      licenseNumber: newDriver.licenseNumber!,
-      licenseCategory: newDriver.licenseCategory!,
-      licenseExpiry: newDriver.licenseExpiry!,
-      contact: newDriver.contact!,
-      safetyScore: Number(newDriver.safetyScore) || 100,
-      status: newDriver.status as Driver["status"],
-    };
+    setFormError("");
+    setIsSubmitting(true);
 
-    setDrivers([...drivers, driver]);
-    setIsAddDialogOpen(false);
-    setNewDriver({ status: "AVAILABLE" });
-  };
+    try {
+      const res = await fetch("/api/drivers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: newDriver.firstName,
+          lastName: newDriver.lastName,
+          licenseNumber: newDriver.licenseNumber,
+          status: newDriver.status,
+        }),
+      });
 
-  const getExpiryWarning = (dateStr: string) => {
-    const expiry = new Date(dateStr);
-    const now = new Date();
-    // Use the exact date 2026-07-12 for demo purposes as we know the current time
-    const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) {
-      return { variant: "destructive" as const, text: "Expired" };
-    } else if (diffDays <= 30) {
-      return { variant: "warning" as const, text: `Expires in ${diffDays} days` };
+      const json = await res.json();
+
+      if (!res.ok) {
+        if (json.error && Array.isArray(json.error)) {
+          // Zod error array
+          setFormError(json.error.map((err: any) => err.message).join(", "));
+        } else {
+          setFormError(json.error || "Failed to add driver");
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      setDrivers([json.data, ...drivers]);
+      setIsAddDialogOpen(false);
+      setNewDriver({ status: "AVAILABLE" });
+    } catch (error) {
+      setFormError("An unexpected error occurred.");
+    } finally {
+      setIsSubmitting(false);
     }
-    return null;
   };
 
   return (
@@ -103,14 +123,12 @@ export default function DriversPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground">Drivers</h2>
-          <p className="text-muted-foreground">Manage your drivers, licenses, and safety scores.</p>
+          <p className="text-muted-foreground">Manage your drivers, licenses, and status.</p>
         </div>
         
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" /> Add Driver
-            </Button>
+          <DialogTrigger render={<Button className="bg-primary text-primary-foreground hover:bg-primary/90" />}>
+            <Plus className="mr-2 h-4 w-4" /> Add Driver
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -118,14 +136,30 @@ export default function DriversPage() {
             </DialogHeader>
             <form onSubmit={handleAddDriver}>
               <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <label htmlFor="name" className="text-sm font-medium">Full Name</label>
-                  <Input 
-                    id="name" 
-                    required 
-                    value={newDriver.name || ""}
-                    onChange={e => setNewDriver({...newDriver, name: e.target.value})}
-                  />
+                {formError && (
+                  <div className="p-3 text-sm font-medium text-destructive bg-destructive/10 rounded-md">
+                    {formError}
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="firstName" className="text-sm font-medium">First Name</label>
+                    <Input 
+                      id="firstName" 
+                      required 
+                      value={newDriver.firstName || ""}
+                      onChange={e => setNewDriver({...newDriver, firstName: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="lastName" className="text-sm font-medium">Last Name</label>
+                    <Input 
+                      id="lastName" 
+                      required 
+                      value={newDriver.lastName || ""}
+                      onChange={e => setNewDriver({...newDriver, lastName: e.target.value})}
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
@@ -138,31 +172,6 @@ export default function DriversPage() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <label htmlFor="category" className="text-sm font-medium">Category</label>
-                    <Select required onValueChange={v => setNewDriver({...newDriver, licenseCategory: v})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="HMV">HMV</SelectItem>
-                        <SelectItem value="LMV">LMV</SelectItem>
-                        <SelectItem value="2W">2W</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <label htmlFor="expiry" className="text-sm font-medium">License Expiry</label>
-                    <Input 
-                      id="expiry" 
-                      type="date" 
-                      required 
-                      value={newDriver.licenseExpiry || ""}
-                      onChange={e => setNewDriver({...newDriver, licenseExpiry: e.target.value})}
-                    />
-                  </div>
-                  <div className="grid gap-2">
                     <label htmlFor="status" className="text-sm font-medium">Status</label>
                     <Select defaultValue="AVAILABLE" onValueChange={v => setNewDriver({...newDriver, status: v as Driver["status"]})}>
                       <SelectTrigger>
@@ -170,39 +179,22 @@ export default function DriversPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="AVAILABLE">Available</SelectItem>
-                        <SelectItem value="OFF_DUTY">Off Duty</SelectItem>
+                        <SelectItem value="ON_TRIP">On Trip</SelectItem>
+                        <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                        <SelectItem value="EXPIRED_LICENSE">Expired License</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <label htmlFor="contact" className="text-sm font-medium">Contact Number</label>
-                    <Input 
-                      id="contact" 
-                      required 
-                      value={newDriver.contact || ""}
-                      onChange={e => setNewDriver({...newDriver, contact: e.target.value})}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label htmlFor="safety" className="text-sm font-medium">Initial Safety Score</label>
-                    <Input 
-                      id="safety" 
-                      type="number" 
-                      min={0}
-                      max={100}
-                      value={newDriver.safetyScore || 100}
-                      onChange={e => setNewDriver({...newDriver, safetyScore: Number(e.target.value)})}
-                    />
-                  </div>
-                </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSubmitting}>
                   Cancel
                 </Button>
-                <Button type="submit">Save Driver</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Driver
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -228,8 +220,8 @@ export default function DriversPage() {
             <SelectItem value="ALL">All Statuses</SelectItem>
             <SelectItem value="AVAILABLE">Available</SelectItem>
             <SelectItem value="ON_TRIP">On Trip</SelectItem>
-            <SelectItem value="OFF_DUTY">Off Duty</SelectItem>
             <SelectItem value="SUSPENDED">Suspended</SelectItem>
+            <SelectItem value="EXPIRED_LICENSE">Expired License</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -238,50 +230,33 @@ export default function DriversPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
-              <TableHead>Name</TableHead>
+              <TableHead>First Name</TableHead>
+              <TableHead>Last Name</TableHead>
               <TableHead>License No.</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>License Expiry</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead className="text-center">Safety Score</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredDrivers.length === 0 ? (
+            {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                </TableCell>
+              </TableRow>
+            ) : filteredDrivers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   No drivers found.
                 </TableCell>
               </TableRow>
             ) : (
               filteredDrivers.map((driver) => {
-                const warning = getExpiryWarning(driver.licenseExpiry);
                 return (
                   <TableRow key={driver.id} className="border-border">
-                    <TableCell className="font-medium text-foreground">{driver.name}</TableCell>
+                    <TableCell className="font-medium text-foreground">{driver.firstName}</TableCell>
+                    <TableCell className="font-medium text-foreground">{driver.lastName}</TableCell>
                     <TableCell>{driver.licenseNumber}</TableCell>
-                    <TableCell>{driver.licenseCategory}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {driver.licenseExpiry}
-                        {warning && (
-                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            warning.variant === 'destructive' ? 'bg-red-500/20 text-red-500' : 'bg-amber-500/20 text-amber-500'
-                          }`}>
-                            <AlertTriangle className="mr-1 h-3 w-3" />
-                            {warning.text}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{driver.contact}</TableCell>
-                    <TableCell className="text-center">
-                      <span className={`font-medium ${driver.safetyScore >= 90 ? 'text-emerald-500' : driver.safetyScore >= 75 ? 'text-amber-500' : 'text-red-500'}`}>
-                        {driver.safetyScore}
-                      </span>
-                    </TableCell>
                     <TableCell>
                       <StatusBadge status={driver.status} />
                     </TableCell>

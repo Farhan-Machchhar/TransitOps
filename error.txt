@@ -1,0 +1,21 @@
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 14.1s
+  Running TypeScript ...
+Failed to type check.
+
+./src/app/(dashboard)/drivers/page.tsx:130:26
+Type error: Type '{ children: Element; asChild: true; }' is not assignable to type 'IntrinsicAttributes & Props<unknown>'.
+  Property 'asChild' does not exist on type 'IntrinsicAttributes & Props<unknown>'.
+
+  128 |         
+  129 |         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+> 130 |           <DialogTrigger asChild>
+      |                          ^
+  131 |             <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+  132 |               <Plus className="mr-2 h-4 w-4" /> Add Driver
+  133 |             </Button>
+Next.js build worker exited with code: 1 and signal: null
+The command '/bin/sh -c npm run build' returned a non-zero code: 1
+ERROR: Service 'web' failed to build : Build failed

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Search, Filter } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Search, Filter, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -31,23 +31,16 @@ import {
 
 type Vehicle = {
   id: string;
-  registrationNumber: string;
-  nameModel: string;
-  type: string;
-  maxLoadCapacity: number;
-  odometer: number;
-  status: "AVAILABLE" | "ON_TRIP" | "IN_SHOP" | "RETIRED";
+  licensePlate: string;
+  make: string;
+  model: string;
+  year: number;
+  status: "AVAILABLE" | "IN_USE" | "IN_SHOP" | "RETIRED";
 };
 
-const INITIAL_VEHICLES: Vehicle[] = [
-  { id: "1", registrationNumber: "TN-45-BM-1234", nameModel: "Volvo FH16", type: "Heavy Duty", maxLoadCapacity: 40000, odometer: 125000, status: "AVAILABLE" },
-  { id: "2", registrationNumber: "MH-12-PQ-9876", nameModel: "Scania R500", type: "Heavy Duty", maxLoadCapacity: 35000, odometer: 85000, status: "ON_TRIP" },
-  { id: "3", registrationNumber: "DL-01-AB-1111", nameModel: "Tata Prima", type: "Medium Duty", maxLoadCapacity: 15000, odometer: 42000, status: "IN_SHOP" },
-  { id: "4", registrationNumber: "KA-05-XY-5555", nameModel: "Ashok Leyland Dost", type: "Light Duty", maxLoadCapacity: 2500, odometer: 150000, status: "RETIRED" },
-];
-
 export default function VehiclesPage() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>(INITIAL_VEHICLES);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -57,41 +50,74 @@ export default function VehiclesPage() {
     status: "AVAILABLE",
   });
   const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+
+  const fetchVehicles = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/vehicles");
+      const json = await res.json();
+      if (json.data) {
+        setVehicles(json.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch vehicles", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredVehicles = vehicles.filter(v => {
-    const matchesSearch = v.registrationNumber.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          v.nameModel.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = v.licensePlate?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          v.make?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          v.model?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "ALL" || v.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const handleAddVehicle = (e: React.FormEvent) => {
+  const handleAddVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
+    setIsSubmitting(true);
 
-    // Client-side validate unique registration number
-    const isDuplicate = vehicles.some(
-      v => v.registrationNumber.toLowerCase() === newVehicle.registrationNumber?.toLowerCase()
-    );
+    try {
+      const res = await fetch("/api/vehicles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          licensePlate: newVehicle.licensePlate,
+          make: newVehicle.make,
+          model: newVehicle.model,
+          year: Number(newVehicle.year),
+          status: newVehicle.status,
+        }),
+      });
 
-    if (isDuplicate) {
-      setFormError("A vehicle with this Registration Number already exists.");
-      return;
+      const json = await res.json();
+
+      if (!res.ok) {
+        if (json.error && Array.isArray(json.error)) {
+          // Zod error array
+          setFormError(json.error.map((err: any) => err.message).join(", "));
+        } else {
+          setFormError(json.error || "Failed to add vehicle");
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      setVehicles([json.data, ...vehicles]);
+      setIsAddDialogOpen(false);
+      setNewVehicle({ status: "AVAILABLE" });
+    } catch (error) {
+      setFormError("An unexpected error occurred.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const vehicle: Vehicle = {
-      id: Math.random().toString(36).substr(2, 9),
-      registrationNumber: newVehicle.registrationNumber!,
-      nameModel: newVehicle.nameModel!,
-      type: newVehicle.type!,
-      maxLoadCapacity: Number(newVehicle.maxLoadCapacity),
-      odometer: Number(newVehicle.odometer),
-      status: newVehicle.status as Vehicle["status"],
-    };
-
-    setVehicles([...vehicles, vehicle]);
-    setIsAddDialogOpen(false);
-    setNewVehicle({ status: "AVAILABLE" });
   };
 
   return (
@@ -99,14 +125,12 @@ export default function VehiclesPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground">Vehicles</h2>
-          <p className="text-muted-foreground">Manage your fleet inventory, status, and capacities.</p>
+          <p className="text-muted-foreground">Manage your fleet inventory, status, and details.</p>
         </div>
         
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" /> Add Vehicle
-            </Button>
+          <DialogTrigger render={<Button className="bg-primary text-primary-foreground hover:bg-primary/90" />}>
+            <Plus className="mr-2 h-4 w-4" /> Add Vehicle
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -120,39 +144,49 @@ export default function VehiclesPage() {
                   </div>
                 )}
                 <div className="grid gap-2">
-                  <label htmlFor="regNo" className="text-sm font-medium">Registration Number</label>
+                  <label htmlFor="regNo" className="text-sm font-medium">License Plate</label>
                   <Input 
                     id="regNo" 
                     required 
-                    value={newVehicle.registrationNumber || ""}
-                    onChange={e => setNewVehicle({...newVehicle, registrationNumber: e.target.value})}
+                    value={newVehicle.licensePlate || ""}
+                    onChange={e => setNewVehicle({...newVehicle, licensePlate: e.target.value})}
                     placeholder="e.g. TN-45-BM-1234" 
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <label htmlFor="nameModel" className="text-sm font-medium">Name / Model</label>
-                  <Input 
-                    id="nameModel" 
-                    required 
-                    value={newVehicle.nameModel || ""}
-                    onChange={e => setNewVehicle({...newVehicle, nameModel: e.target.value})}
-                    placeholder="e.g. Volvo FH16" 
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <label htmlFor="type" className="text-sm font-medium">Type</label>
-                    <Select required onValueChange={v => setNewVehicle({...newVehicle, type: v})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Heavy Duty">Heavy Duty</SelectItem>
-                        <SelectItem value="Medium Duty">Medium Duty</SelectItem>
-                        <SelectItem value="Light Duty">Light Duty</SelectItem>
-                        <SelectItem value="Van">Van</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <label htmlFor="make" className="text-sm font-medium">Make</label>
+                    <Input 
+                      id="make" 
+                      required 
+                      value={newVehicle.make || ""}
+                      onChange={e => setNewVehicle({...newVehicle, make: e.target.value})}
+                      placeholder="e.g. Volvo" 
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="model" className="text-sm font-medium">Model</label>
+                    <Input 
+                      id="model" 
+                      required 
+                      value={newVehicle.model || ""}
+                      onChange={e => setNewVehicle({...newVehicle, model: e.target.value})}
+                      placeholder="e.g. FH16" 
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="year" className="text-sm font-medium">Year</label>
+                    <Input 
+                      id="year" 
+                      type="number" 
+                      required 
+                      min={1990}
+                      max={new Date().getFullYear() + 1}
+                      value={newVehicle.year || ""}
+                      onChange={e => setNewVehicle({...newVehicle, year: Number(e.target.value)})}
+                    />
                   </div>
                   <div className="grid gap-2">
                     <label htmlFor="status" className="text-sm font-medium">Initial Status</label>
@@ -168,36 +202,15 @@ export default function VehiclesPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <label htmlFor="capacity" className="text-sm font-medium">Max Load (kg)</label>
-                    <Input 
-                      id="capacity" 
-                      type="number" 
-                      required 
-                      min={0}
-                      value={newVehicle.maxLoadCapacity || ""}
-                      onChange={e => setNewVehicle({...newVehicle, maxLoadCapacity: Number(e.target.value)})}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <label htmlFor="odometer" className="text-sm font-medium">Odometer (km)</label>
-                    <Input 
-                      id="odometer" 
-                      type="number" 
-                      required 
-                      min={0}
-                      value={newVehicle.odometer || ""}
-                      onChange={e => setNewVehicle({...newVehicle, odometer: Number(e.target.value)})}
-                    />
-                  </div>
-                </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSubmitting}>
                   Cancel
                 </Button>
-                <Button type="submit">Save Vehicle</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Vehicle
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -208,7 +221,7 @@ export default function VehiclesPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Search registration or model..." 
+            placeholder="Search license plate or make..." 
             className="pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -222,7 +235,7 @@ export default function VehiclesPage() {
           <SelectContent>
             <SelectItem value="ALL">All Statuses</SelectItem>
             <SelectItem value="AVAILABLE">Available</SelectItem>
-            <SelectItem value="ON_TRIP">On Trip</SelectItem>
+            <SelectItem value="IN_USE">In Use</SelectItem>
             <SelectItem value="IN_SHOP">In Shop</SelectItem>
             <SelectItem value="RETIRED">Retired</SelectItem>
           </SelectContent>
@@ -233,30 +246,34 @@ export default function VehiclesPage() {
         <Table>
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
-              <TableHead>Registration</TableHead>
-              <TableHead>Name / Model</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Max Load</TableHead>
-              <TableHead className="text-right">Odometer</TableHead>
+              <TableHead>License Plate</TableHead>
+              <TableHead>Make</TableHead>
+              <TableHead>Model</TableHead>
+              <TableHead>Year</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredVehicles.length === 0 ? (
+            {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+                </TableCell>
+              </TableRow>
+            ) : filteredVehicles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   No vehicles found matching your criteria.
                 </TableCell>
               </TableRow>
             ) : (
               filteredVehicles.map((vehicle) => (
                 <TableRow key={vehicle.id} className="border-border">
-                  <TableCell className="font-medium text-foreground">{vehicle.registrationNumber}</TableCell>
-                  <TableCell>{vehicle.nameModel}</TableCell>
-                  <TableCell>{vehicle.type}</TableCell>
-                  <TableCell className="text-right">{vehicle.maxLoadCapacity.toLocaleString()} kg</TableCell>
-                  <TableCell className="text-right">{vehicle.odometer.toLocaleString()} km</TableCell>
+                  <TableCell className="font-medium text-foreground">{vehicle.licensePlate}</TableCell>
+                  <TableCell>{vehicle.make}</TableCell>
+                  <TableCell>{vehicle.model}</TableCell>
+                  <TableCell>{vehicle.year}</TableCell>
                   <TableCell>
                     <StatusBadge status={vehicle.status} />
                   </TableCell>

@@ -22,53 +22,23 @@ import {
 } from "recharts";
 import { ArrowUpRight, ArrowDownRight, Activity } from "lucide-react";
 
-// USE_MOCK_DATA flag
-const USE_MOCK_DATA = true;
-
-// Mock Data
-const MOCK_KPIS = {
-  activeVehicles: { value: 142, delta: "+12.5%", positive: true },
-  availableVehicles: { value: 89, delta: "-2.4%", positive: false },
-  maintenanceVehicles: { value: 12, delta: "+1.2%", positive: false },
-  activeTrips: { value: 53, delta: "+24.0%", positive: true },
-  pendingTrips: { value: 18, delta: "-5.0%", positive: true }, // less pending is good
-  driversOnDuty: { value: 138, delta: "+10.1%", positive: true },
-  fleetUtilization: { value: 82.5, delta: "+4.3%", positive: true },
-};
-
-const MOCK_LINE_DATA = [
-  { name: "Mon", trips: 42 },
-  { name: "Tue", trips: 38 },
-  { name: "Wed", trips: 55 },
-  { name: "Thu", trips: 48 },
-  { name: "Fri", trips: 62 },
-  { name: "Sat", trips: 40 },
-  { name: "Sun", trips: 35 },
-];
-
-const MOCK_BAR_DATA = [
-  { name: "Heavy Duty", value: 45 },
-  { name: "Medium Duty", value: 72 },
-  { name: "Light Duty", value: 38 },
-  { name: "Vans", value: 25 },
-];
-
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
-  const [kpis, setKpis] = useState<typeof MOCK_KPIS | null>(null);
+  const [kpis, setKpis] = useState<any>(null);
+  const [lineData, setLineData] = useState<any[]>([]);
+  const [barData, setBarData] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate fetch
     const fetchData = async () => {
       setLoading(true);
-      if (USE_MOCK_DATA) {
-        await new Promise(r => setTimeout(r, 800)); // fake delay
-        setKpis(MOCK_KPIS);
-      } else {
-        // Real fetch when ready
-        // const res = await fetch("/api/dashboard/kpis");
-        // const data = await res.json();
-        // setKpis(data);
+      try {
+        const res = await fetch("/api/dashboard/kpis");
+        const data = await res.json();
+        setKpis(data.kpis);
+        setLineData(data.lineData);
+        setBarData(data.barData);
+      } catch (error) {
+        console.error("Failed to fetch dashboard data", error);
       }
       setLoading(false);
     };
@@ -133,7 +103,7 @@ export default function DashboardPage() {
               <CardContent className="pl-2">
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={MOCK_LINE_DATA} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <LineChart data={lineData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#27272A" vertical={false} />
                       <XAxis dataKey="name" stroke="#A1A1AA" fontSize={12} tickLine={false} axisLine={false} />
                       <YAxis stroke="#A1A1AA" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
@@ -155,7 +125,7 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={MOCK_BAR_DATA} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <BarChart data={barData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#27272A" vertical={false} />
                       <XAxis dataKey="name" stroke="#A1A1AA" fontSize={12} tickLine={false} axisLine={false} />
                       <YAxis stroke="#A1A1AA" fontSize={12} tickLine={false} axisLine={false} />
@@ -178,6 +148,7 @@ export default function DashboardPage() {
 }
 
 function KpiCard({ title, data, suffix = "" }: { title: string; data: { value: number; delta: string; positive: boolean }; suffix?: string }) {
+  if (!data) return null;
   return (
     <Card>
       <CardContent className="p-6">
