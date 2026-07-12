@@ -51,6 +51,7 @@ model Vehicle {
   year            Int
   licensePlate    String           @unique
   status          VehicleStatus    @default(AVAILABLE)
+  cargoCapacity   Int              @default(0)   // max cargo weight (kg)
   trips           Trip[]
   maintenanceLogs MaintenanceLog[]
   fuelLogs        FuelLog[]
@@ -65,6 +66,7 @@ model Driver {
   lastName       String
   licenseNumber  String       @unique
   status         DriverStatus @default(AVAILABLE)
+  licenseExpiry  DateTime?    // null = no expiry enforcement
   trips          Trip[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -79,6 +81,7 @@ model Trip {
   status    TripStatus @default(DRAFT)
   origin    String
   destination String
+  requiredCargo Int?      // cargo weight required for this trip (kg)
   startTime DateTime?
   endTime   DateTime?
   createdAt DateTime   @default(now())

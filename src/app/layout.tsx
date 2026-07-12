@@ -1,24 +1,19 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Providers } from "@/components/providers";
-
-const inter = Inter({ subsets: ["latin"] });
+import type { Metadata } from 'next';
+import './globals.css';
+import Providers from './components/Providers';
 
 export const metadata: Metadata = {
-  title: "TransitOps",
-  description: "Fleet and transport operations platform",
+  title: 'TransitOps',
+  description: 'Logistics Operations Platform',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <Providers>{children}</Providers>
+    <html lang="en" className="dark">
+      <body className="bg-gray-900 text-white font-sans antialiased">
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

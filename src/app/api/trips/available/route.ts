@@ -7,6 +7,9 @@ import { success, error } from '@/lib/apiResponse';
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json(error('Authentication required', 'UNAUTHORIZED'), { status: 401 });
-  const vehicles = await prisma.vehicle.findMany();
-  return NextResponse.json(success(vehicles));
+  const [vehicles, drivers] = await Promise.all([
+    prisma.vehicle.findMany(),
+    prisma.driver.findMany(),
+  ]);
+  return NextResponse.json(success({ vehicles, drivers }));
 }

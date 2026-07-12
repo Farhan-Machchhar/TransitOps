@@ -52,8 +52,10 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     warning: "bg-yellow-500 text-white hover:bg-yellow-600",
   };
 
+  const isCustomVariant = variant === "success" || (variant as string) === "warning";
+
   return (
-    <Badge variant={variant === "success" || variant === "warning" ? "default" : variant} className={variantStyles[variant as keyof typeof variantStyles]}>
+    <Badge variant={isCustomVariant ? "default" : (variant as any)} className={variantStyles[variant as keyof typeof variantStyles]}>
       {status.replace(/_/g, " ")}
     </Badge>
   );
