@@ -5,6 +5,10 @@ export const driverSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   licenseNumber: z.string().min(1, "License number is required"),
+  licenseCategory: z.string().min(1, "License category is required"),
+  licenseExpiryDate: z.coerce.date(),
+  contactNumber: z.string().min(1, "Contact number is required"),
+  safetyScore: z.number().min(0).max(100),
   status: z.nativeEnum(DriverStatus).optional(),
 });
 

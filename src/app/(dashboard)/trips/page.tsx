@@ -36,6 +36,8 @@ type Trip = {
   id: string;
   origin: string;
   destination: string;
+  cargoWeight: number;
+  plannedDistance: number;
   vehicleId: string;
   driverId: string;
   status: "DRAFT" | "DISPATCHED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
@@ -99,6 +101,8 @@ export default function TripsPage() {
           destination: newTrip.destination,
           vehicleId: newTrip.vehicleId,
           driverId: newTrip.driverId,
+          cargoWeight: Number(newTrip.cargoWeight),
+          plannedDistance: Number(newTrip.plannedDistance),
           status: "DRAFT"
         }),
       });
@@ -170,7 +174,7 @@ export default function TripsPage() {
     }
   };
 
-  const isSubmitDisabled = !newTrip.origin || !newTrip.destination || !newTrip.vehicleId || !newTrip.driverId || isSubmitting;
+  const isSubmitDisabled = !newTrip.origin || !newTrip.destination || !newTrip.vehicleId || !newTrip.driverId || !newTrip.cargoWeight || !newTrip.plannedDistance || isSubmitting;
 
   return (
     <div className="space-y-6">
@@ -203,6 +207,17 @@ export default function TripsPage() {
                   <div className="grid gap-2">
                     <label className="text-sm font-medium">Destination</label>
                     <Input required value={newTrip.destination || ""} onChange={e => setNewTrip({...newTrip, destination: e.target.value})} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium">Cargo Weight (kg)</label>
+                    <Input type="number" required value={newTrip.cargoWeight || ""} onChange={e => setNewTrip({...newTrip, cargoWeight: Number(e.target.value)})} />
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium">Planned Distance (km)</label>
+                    <Input type="number" required value={newTrip.plannedDistance || ""} onChange={e => setNewTrip({...newTrip, plannedDistance: Number(e.target.value)})} />
                   </div>
                 </div>
 
@@ -263,6 +278,8 @@ export default function TripsPage() {
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
               <TableHead>Route</TableHead>
+              <TableHead>Cargo (kg)</TableHead>
+              <TableHead>Distance (km)</TableHead>
               <TableHead>Vehicle</TableHead>
               <TableHead>Driver</TableHead>
               <TableHead>Status</TableHead>
@@ -272,13 +289,13 @@ export default function TripsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                 </TableCell>
               </TableRow>
             ) : trips.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No trips found.</TableCell>
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No trips found.</TableCell>
               </TableRow>
             ) : (
               trips.map((trip) => (
@@ -286,6 +303,8 @@ export default function TripsPage() {
                   <TableCell>
                     <div className="font-medium text-foreground">{trip.origin} → {trip.destination}</div>
                   </TableCell>
+                  <TableCell>{trip.cargoWeight}</TableCell>
+                  <TableCell>{trip.plannedDistance}</TableCell>
                   <TableCell>{trip.vehicle?.licensePlate || trip.vehicleId}</TableCell>
                   <TableCell>{trip.driver ? `${trip.driver.firstName} ${trip.driver.lastName}` : trip.driverId}</TableCell>
                   <TableCell>

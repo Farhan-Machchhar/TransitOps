@@ -7,6 +7,8 @@ export const tripSchema = z.object({
   status: z.nativeEnum(TripStatus).optional(),
   origin: z.string().min(1, "Origin is required"),
   destination: z.string().min(1, "Destination is required"),
+  cargoWeight: z.number().min(0, "Cargo weight is required"),
+  plannedDistance: z.number().min(1, "Planned distance is required"),
   startTime: z.coerce.date().optional(),
   endTime: z.coerce.date().optional(),
 });

@@ -16,7 +16,7 @@ export default function Home() {
       {/* Navbar */}
       <header className="relative z-50 flex items-center justify-between px-6 py-4 lg:px-12 backdrop-blur-md border-b border-white/5 bg-zinc-950/50">
         <div className="flex items-center gap-3">
-          <Image src="/logo.png" alt="TransitOps Logo" width={160} height={40} className="object-contain" />
+          <Image src="/logo.png" alt="TransitOps Logo" width={130} height={32} className="object-contain" />
         </div>
         <div className="flex items-center gap-4">
           <Link href="/login" className="text-sm font-medium text-zinc-300 hover:text-white transition-colors">

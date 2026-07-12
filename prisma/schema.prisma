@@ -15,7 +15,7 @@ enum Role {
 
 enum VehicleStatus {
   AVAILABLE
-  IN_USE
+  ON_TRIP
   IN_SHOP
   RETIRED
 }
@@ -24,7 +24,7 @@ enum DriverStatus {
   AVAILABLE
   ON_TRIP
   SUSPENDED
-  EXPIRED_LICENSE
+  OFF_DUTY
 }
 
 enum TripStatus {
@@ -48,8 +48,12 @@ model Vehicle {
   id              String           @id @default(cuid())
   make            String
   model           String
+  type            String           @default("Truck")
   year            Int
   licensePlate    String           @unique
+  maxLoadCapacity Float            @default(1000)
+  odometer        Float            @default(0)
+  acquisitionCost Float            @default(50000)
   status          VehicleStatus    @default(AVAILABLE)
   trips           Trip[]
   maintenanceLogs MaintenanceLog[]
@@ -60,12 +64,16 @@ model Vehicle {
 }
 
 model Driver {
-  id             String       @id @default(cuid())
-  firstName      String
-  lastName       String
-  licenseNumber  String       @unique
-  status         DriverStatus @default(AVAILABLE)
-  trips          Trip[]
+  id               String       @id @default(cuid())
+  firstName        String
+  lastName         String
+  licenseNumber    String       @unique
+  licenseCategory  String       @default("Standard")
+  licenseExpiryDate DateTime    @default(now())
+  contactNumber    String       @default("000-000-0000")
+  safetyScore      Float        @default(100)
+  status           DriverStatus @default(AVAILABLE)
+  trips            Trip[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 }
@@ -77,10 +85,12 @@ model Trip {
   driverId  String
   driver    Driver     @relation(fields: [driverId], references: [id])
   status    TripStatus @default(DRAFT)
-  origin    String
+  origin      String
   destination String
-  startTime DateTime?
-  endTime   DateTime?
+  cargoWeight Float      @default(0)
+  plannedDistance Float  @default(0)
+  startTime   DateTime?
+  endTime     DateTime?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -100,7 +110,7 @@ model FuelLog {
   id        String   @id @default(cuid())
   vehicleId String
   vehicle   Vehicle  @relation(fields: [vehicleId], references: [id])
-  gallons   Float
+  liters    Float
   cost      Float
   date      DateTime @default(now())
   createdAt DateTime @default(now())

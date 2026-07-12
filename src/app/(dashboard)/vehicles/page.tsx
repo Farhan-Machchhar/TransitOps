@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, Loader2 } from "lucide-react";
+import { Plus, Search, Filter, Loader2, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -34,8 +34,12 @@ type Vehicle = {
   licensePlate: string;
   make: string;
   model: string;
+  type: string;
   year: number;
-  status: "AVAILABLE" | "IN_USE" | "IN_SHOP" | "RETIRED";
+  maxLoadCapacity: number;
+  odometer: number;
+  acquisitionCost: number;
+  status: "AVAILABLE" | "ON_TRIP" | "IN_SHOP" | "RETIRED";
 };
 
 export default function VehiclesPage() {
@@ -44,6 +48,13 @@ export default function VehiclesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  // Edit State
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  // Delete State
+  const [deletingVehicleId, setDeletingVehicleId] = useState<string | null>(null);
 
   // Form State
   const [newVehicle, setNewVehicle] = useState<Partial<Vehicle>>({
@@ -92,7 +103,11 @@ export default function VehiclesPage() {
           licensePlate: newVehicle.licensePlate,
           make: newVehicle.make,
           model: newVehicle.model,
+          type: newVehicle.type || "Truck",
           year: Number(newVehicle.year),
+          maxLoadCapacity: Number(newVehicle.maxLoadCapacity),
+          odometer: Number(newVehicle.odometer),
+          acquisitionCost: Number(newVehicle.acquisitionCost),
           status: newVehicle.status,
         }),
       });
@@ -101,7 +116,6 @@ export default function VehiclesPage() {
 
       if (!res.ok) {
         if (json.error && Array.isArray(json.error)) {
-          // Zod error array
           setFormError(json.error.map((err: any) => err.message).join(", "));
         } else {
           setFormError(json.error || "Failed to add vehicle");
@@ -118,6 +132,79 @@ export default function VehiclesPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEditVehicle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingVehicle) return;
+    
+    setFormError("");
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch(`/api/vehicles/${editingVehicle.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          licensePlate: editingVehicle.licensePlate,
+          make: editingVehicle.make,
+          model: editingVehicle.model,
+          type: editingVehicle.type,
+          year: Number(editingVehicle.year),
+          maxLoadCapacity: Number(editingVehicle.maxLoadCapacity),
+          odometer: Number(editingVehicle.odometer),
+          acquisitionCost: Number(editingVehicle.acquisitionCost),
+          status: editingVehicle.status,
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        if (json.error && Array.isArray(json.error)) {
+          setFormError(json.error.map((err: any) => err.message).join(", "));
+        } else {
+          setFormError(json.error || "Failed to update vehicle");
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      setVehicles(vehicles.map(v => v.id === editingVehicle.id ? json.data : v));
+      setIsEditDialogOpen(false);
+      setEditingVehicle(null);
+    } catch (error) {
+      setFormError("An unexpected error occurred.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteVehicle = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this vehicle? This action cannot be undone.")) return;
+    
+    setDeletingVehicleId(id);
+    try {
+      const res = await fetch(`/api/vehicles/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete vehicle");
+      }
+
+      setVehicles(vehicles.filter(v => v.id !== id));
+    } catch (error) {
+      alert("Failed to delete vehicle");
+    } finally {
+      setDeletingVehicleId(null);
+    }
+  };
+
+  const openEditDialog = (vehicle: Vehicle) => {
+    setEditingVehicle({ ...vehicle });
+    setFormError("");
+    setIsEditDialogOpen(true);
   };
 
   return (
@@ -196,10 +283,55 @@ export default function VehiclesPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="AVAILABLE">Available</SelectItem>
+                        <SelectItem value="ON_TRIP">On Trip</SelectItem>
                         <SelectItem value="IN_SHOP">In Shop</SelectItem>
                         <SelectItem value="RETIRED">Retired</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="type" className="text-sm font-medium">Type</label>
+                    <Input 
+                      id="type" 
+                      required 
+                      value={newVehicle.type || ""}
+                      onChange={e => setNewVehicle({...newVehicle, type: e.target.value})}
+                      placeholder="e.g. Truck, Van" 
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="maxLoadCapacity" className="text-sm font-medium">Max Load (kg)</label>
+                    <Input 
+                      id="maxLoadCapacity" 
+                      type="number" 
+                      required 
+                      value={newVehicle.maxLoadCapacity || ""}
+                      onChange={e => setNewVehicle({...newVehicle, maxLoadCapacity: Number(e.target.value)})}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="odometer" className="text-sm font-medium">Odometer</label>
+                    <Input 
+                      id="odometer" 
+                      type="number" 
+                      required 
+                      value={newVehicle.odometer || ""}
+                      onChange={e => setNewVehicle({...newVehicle, odometer: Number(e.target.value)})}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="acquisitionCost" className="text-sm font-medium">Acquisition Cost</label>
+                    <Input 
+                      id="acquisitionCost" 
+                      type="number" 
+                      required 
+                      value={newVehicle.acquisitionCost || ""}
+                      onChange={e => setNewVehicle({...newVehicle, acquisitionCost: Number(e.target.value)})}
+                    />
                   </div>
                 </div>
               </div>
@@ -221,7 +353,7 @@ export default function VehiclesPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Search license plate or make..." 
+            placeholder="Search license plate, make or model..." 
             className="pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -235,7 +367,7 @@ export default function VehiclesPage() {
           <SelectContent>
             <SelectItem value="ALL">All Statuses</SelectItem>
             <SelectItem value="AVAILABLE">Available</SelectItem>
-            <SelectItem value="IN_USE">In Use</SelectItem>
+            <SelectItem value="ON_TRIP">On Trip</SelectItem>
             <SelectItem value="IN_SHOP">In Shop</SelectItem>
             <SelectItem value="RETIRED">Retired</SelectItem>
           </SelectContent>
@@ -247,9 +379,10 @@ export default function VehiclesPage() {
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
               <TableHead>License Plate</TableHead>
-              <TableHead>Make</TableHead>
-              <TableHead>Model</TableHead>
-              <TableHead>Year</TableHead>
+              <TableHead>Make/Model</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Capacity (kg)</TableHead>
+              <TableHead>Odometer</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -271,14 +404,39 @@ export default function VehiclesPage() {
               filteredVehicles.map((vehicle) => (
                 <TableRow key={vehicle.id} className="border-border">
                   <TableCell className="font-medium text-foreground">{vehicle.licensePlate}</TableCell>
-                  <TableCell>{vehicle.make}</TableCell>
-                  <TableCell>{vehicle.model}</TableCell>
-                  <TableCell>{vehicle.year}</TableCell>
+                  <TableCell>{vehicle.make} {vehicle.model} ({vehicle.year})</TableCell>
+                  <TableCell>{vehicle.type}</TableCell>
+                  <TableCell>{vehicle.maxLoadCapacity}</TableCell>
+                  <TableCell>{vehicle.odometer}</TableCell>
                   <TableCell>
                     <StatusBadge status={vehicle.status} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" className="text-muted-foreground">Edit</Button>
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => openEditDialog(vehicle)}
+                        className="text-muted-foreground hover:text-emerald-500"
+                        title="Edit Vehicle"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDeleteVehicle(vehicle.id)}
+                        disabled={deletingVehicleId === vehicle.id}
+                        className="text-muted-foreground hover:text-destructive"
+                        title="Delete Vehicle"
+                      >
+                        {deletingVehicleId === vehicle.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -286,6 +444,138 @@ export default function VehiclesPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Vehicle</DialogTitle>
+          </DialogHeader>
+          {editingVehicle && (
+            <form onSubmit={handleEditVehicle}>
+              <div className="grid gap-4 py-4">
+                {formError && (
+                  <div className="p-3 text-sm font-medium text-destructive bg-destructive/10 rounded-md">
+                    {formError}
+                  </div>
+                )}
+                <div className="grid gap-2">
+                  <label htmlFor="edit-regNo" className="text-sm font-medium">License Plate</label>
+                  <Input 
+                    id="edit-regNo" 
+                    required 
+                    value={editingVehicle.licensePlate}
+                    onChange={e => setEditingVehicle({...editingVehicle, licensePlate: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="edit-make" className="text-sm font-medium">Make</label>
+                    <Input 
+                      id="edit-make" 
+                      required 
+                      value={editingVehicle.make}
+                      onChange={e => setEditingVehicle({...editingVehicle, make: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="edit-model" className="text-sm font-medium">Model</label>
+                    <Input 
+                      id="edit-model" 
+                      required 
+                      value={editingVehicle.model}
+                      onChange={e => setEditingVehicle({...editingVehicle, model: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="edit-year" className="text-sm font-medium">Year</label>
+                    <Input 
+                      id="edit-year" 
+                      type="number" 
+                      required 
+                      min={1990}
+                      max={new Date().getFullYear() + 1}
+                      value={editingVehicle.year}
+                      onChange={e => setEditingVehicle({...editingVehicle, year: Number(e.target.value)})}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="edit-status" className="text-sm font-medium">Status</label>
+                    <Select 
+                      value={editingVehicle.status} 
+                      onValueChange={v => setEditingVehicle({...editingVehicle, status: v as Vehicle["status"]})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AVAILABLE">Available</SelectItem>
+                        <SelectItem value="ON_TRIP">On Trip</SelectItem>
+                        <SelectItem value="IN_SHOP">In Shop</SelectItem>
+                        <SelectItem value="RETIRED">Retired</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="edit-type" className="text-sm font-medium">Type</label>
+                    <Input 
+                      id="edit-type" 
+                      required 
+                      value={editingVehicle.type}
+                      onChange={e => setEditingVehicle({...editingVehicle, type: e.target.value})}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="edit-maxLoadCapacity" className="text-sm font-medium">Max Load (kg)</label>
+                    <Input 
+                      id="edit-maxLoadCapacity" 
+                      type="number" 
+                      required 
+                      value={editingVehicle.maxLoadCapacity}
+                      onChange={e => setEditingVehicle({...editingVehicle, maxLoadCapacity: Number(e.target.value)})}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="edit-odometer" className="text-sm font-medium">Odometer</label>
+                    <Input 
+                      id="edit-odometer" 
+                      type="number" 
+                      required 
+                      value={editingVehicle.odometer}
+                      onChange={e => setEditingVehicle({...editingVehicle, odometer: Number(e.target.value)})}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="edit-acquisitionCost" className="text-sm font-medium">Acquisition Cost</label>
+                    <Input 
+                      id="edit-acquisitionCost" 
+                      type="number" 
+                      required 
+                      value={editingVehicle.acquisitionCost}
+                      onChange={e => setEditingVehicle({...editingVehicle, acquisitionCost: Number(e.target.value)})}
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isSubmitting}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

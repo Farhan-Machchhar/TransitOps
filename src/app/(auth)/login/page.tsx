@@ -52,7 +52,7 @@ export default function LoginPage() {
         {/* Content */}
         <div className="relative z-10 flex flex-col h-full">
           <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="TransitOps Logo" width={160} height={40} className="object-contain" />
+            <Image src="/logo.png" alt="TransitOps Logo" width={140} height={35} className="object-contain" />
           </div>
           
           <div className="flex-1 flex flex-col justify-center max-w-lg">
@@ -86,7 +86,7 @@ export default function LoginPage() {
         <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
           <div className="mb-10 text-center lg:text-left">
             <div className="flex lg:hidden items-center justify-center gap-2 mb-8">
-              <Image src="/logo.png" alt="TransitOps Logo" width={140} height={32} className="object-contain" />
+              <Image src="/logo.png" alt="TransitOps Logo" width={120} height={30} className="object-contain" />
             </div>
             
             <h2 className="text-3xl font-bold tracking-tight mb-2">Dashboard Log In</h2>

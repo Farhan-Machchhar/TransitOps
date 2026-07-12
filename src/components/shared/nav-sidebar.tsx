@@ -71,7 +71,7 @@ export function NavSidebar() {
   return (
     <div className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border text-sidebar-foreground">
       <div className="flex h-16 items-center px-6 border-b border-sidebar-border mt-2 mb-2">
-        <Image src="/logo.png" alt="TransitOps Logo" width={140} height={32} className="object-contain" />
+        <Image src="/logo.png" alt="TransitOps Logo" width={120} height={28} className="object-contain" />
       </div>
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="space-y-1 px-3">

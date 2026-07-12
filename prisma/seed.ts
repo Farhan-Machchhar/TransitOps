@@ -31,13 +31,13 @@ async function main() {
 
   // 2. Create Vehicles (Dynamic sample data)
   const vehiclesData = [
-    { make: 'Ford', model: 'Transit', year: 2021, licensePlate: 'ABC-123', status: VehicleStatus.IN_USE },
-    { make: 'Mercedes', model: 'Sprinter', year: 2022, licensePlate: 'XYZ-987', status: VehicleStatus.AVAILABLE },
-    { make: 'Ram', model: 'ProMaster', year: 2020, licensePlate: 'LMN-456', status: VehicleStatus.AVAILABLE },
-    { make: 'Chevrolet', model: 'Express', year: 2019, licensePlate: 'DEF-456', status: VehicleStatus.IN_SHOP },
-    { make: 'GMC', model: 'Savana', year: 2015, licensePlate: 'OLD-999', status: VehicleStatus.RETIRED },
-    { make: 'Volvo', model: 'VNL', year: 2023, licensePlate: 'TRK-001', status: VehicleStatus.AVAILABLE },
-    { make: 'Freightliner', model: 'Cascadia', year: 2023, licensePlate: 'TRK-002', status: VehicleStatus.IN_USE },
+    { make: 'Ford', model: 'Transit', type: 'Van', maxLoadCapacity: 1500, odometer: 12500, acquisitionCost: 45000, year: 2021, licensePlate: 'ABC-123', status: VehicleStatus.ON_TRIP },
+    { make: 'Mercedes', model: 'Sprinter', type: 'Van', maxLoadCapacity: 2000, odometer: 8000, acquisitionCost: 55000, year: 2022, licensePlate: 'XYZ-987', status: VehicleStatus.AVAILABLE },
+    { make: 'Ram', model: 'ProMaster', type: 'Van', maxLoadCapacity: 1800, odometer: 32000, acquisitionCost: 40000, year: 2020, licensePlate: 'LMN-456', status: VehicleStatus.AVAILABLE },
+    { make: 'Chevrolet', model: 'Express', type: 'Van', maxLoadCapacity: 1700, odometer: 45000, acquisitionCost: 38000, year: 2019, licensePlate: 'DEF-456', status: VehicleStatus.IN_SHOP },
+    { make: 'GMC', model: 'Savana', type: 'Van', maxLoadCapacity: 1600, odometer: 120000, acquisitionCost: 25000, year: 2015, licensePlate: 'OLD-999', status: VehicleStatus.RETIRED },
+    { make: 'Volvo', model: 'VNL', type: 'Truck', maxLoadCapacity: 18000, odometer: 5000, acquisitionCost: 150000, year: 2023, licensePlate: 'TRK-001', status: VehicleStatus.AVAILABLE },
+    { make: 'Freightliner', model: 'Cascadia', type: 'Truck', maxLoadCapacity: 20000, odometer: 12000, acquisitionCost: 165000, year: 2023, licensePlate: 'TRK-002', status: VehicleStatus.ON_TRIP },
   ];
 
   const vehicles = [];
@@ -52,14 +52,16 @@ async function main() {
   console.log('✅ Created vehicles');
 
   // 3. Create Drivers (Dynamic sample data)
+  const today = new Date();
+  const nextYear = new Date(today.setFullYear(today.getFullYear() + 1));
   const driversData = [
-    { firstName: 'John', lastName: 'Doe', licenseNumber: 'DL-1001', status: DriverStatus.ON_TRIP },
-    { firstName: 'Jane', lastName: 'Smith', licenseNumber: 'DL-1002', status: DriverStatus.AVAILABLE },
-    { firstName: 'Mike', lastName: 'Johnson', licenseNumber: 'DL-1003', status: DriverStatus.AVAILABLE },
-    { firstName: 'Sarah', lastName: 'Williams', licenseNumber: 'DL-1004', status: DriverStatus.SUSPENDED },
-    { firstName: 'Tom', lastName: 'Brown', licenseNumber: 'DL-1005', status: DriverStatus.EXPIRED_LICENSE },
-    { firstName: 'Alice', lastName: 'Cooper', licenseNumber: 'DL-1006', status: DriverStatus.AVAILABLE },
-    { firstName: 'Bob', lastName: 'Marley', licenseNumber: 'DL-1007', status: DriverStatus.ON_TRIP },
+    { firstName: 'John', lastName: 'Doe', licenseNumber: 'DL-1001', licenseCategory: 'Standard', licenseExpiryDate: nextYear, contactNumber: '555-0101', safetyScore: 98, status: DriverStatus.ON_TRIP },
+    { firstName: 'Jane', lastName: 'Smith', licenseNumber: 'DL-1002', licenseCategory: 'Commercial', licenseExpiryDate: nextYear, contactNumber: '555-0102', safetyScore: 100, status: DriverStatus.AVAILABLE },
+    { firstName: 'Mike', lastName: 'Johnson', licenseNumber: 'DL-1003', licenseCategory: 'Commercial', licenseExpiryDate: nextYear, contactNumber: '555-0103', safetyScore: 92, status: DriverStatus.AVAILABLE },
+    { firstName: 'Sarah', lastName: 'Williams', licenseNumber: 'DL-1004', licenseCategory: 'Standard', licenseExpiryDate: nextYear, contactNumber: '555-0104', safetyScore: 45, status: DriverStatus.SUSPENDED },
+    { firstName: 'Tom', lastName: 'Brown', licenseNumber: 'DL-1005', licenseCategory: 'Standard', licenseExpiryDate: new Date('2020-01-01'), contactNumber: '555-0105', safetyScore: 88, status: DriverStatus.OFF_DUTY },
+    { firstName: 'Alice', lastName: 'Cooper', licenseNumber: 'DL-1006', licenseCategory: 'Commercial', licenseExpiryDate: nextYear, contactNumber: '555-0106', safetyScore: 95, status: DriverStatus.AVAILABLE },
+    { firstName: 'Bob', lastName: 'Marley', licenseNumber: 'DL-1007', licenseCategory: 'Commercial', licenseExpiryDate: nextYear, contactNumber: '555-0107', safetyScore: 99, status: DriverStatus.ON_TRIP },
   ];
 
   const drivers = [];
@@ -81,6 +83,8 @@ async function main() {
       status: TripStatus.IN_PROGRESS,
       origin: 'Warehouse A',
       destination: 'Store #104',
+      cargoWeight: 1200,
+      plannedDistance: 45.5,
     },
     {
       vehicleId: vehicles.find(v => v.licensePlate === 'XYZ-987')!.id,
@@ -88,6 +92,8 @@ async function main() {
       status: TripStatus.DRAFT,
       origin: 'Warehouse B',
       destination: 'Client Site 7',
+      cargoWeight: 500,
+      plannedDistance: 12.0,
     },
     {
       vehicleId: vehicles.find(v => v.licensePlate === 'TRK-002')!.id,
@@ -95,6 +101,8 @@ async function main() {
       status: TripStatus.DISPATCHED,
       origin: 'Port Terminal',
       destination: 'Distribution Center',
+      cargoWeight: 15000,
+      plannedDistance: 120.5,
     }
   ];
 
