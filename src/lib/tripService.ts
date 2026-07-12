@@ -78,7 +78,7 @@ export class TripService {
       }),
       prisma.vehicle.update({
         where: { id: vehicle.id },
-        data: { status: VehicleStatus.ON_TRIP },
+        data: { status: VehicleStatus.IN_USE },
       }),
       prisma.driver.update({
         where: { id: driver.id },
@@ -123,24 +123,31 @@ export class TripService {
       include: { vehicle: true, driver: true },
     });
     if (!trip) throw new Error('Trip not found');
-    if (trip.status !== TripStatus.DISPATCHED) {
-      throw new Error('Only DISPATCHED trips can be cancelled');
+    if (trip.status === TripStatus.COMPLETED || trip.status === TripStatus.CANCELLED) {
+      throw new Error('Trip cannot be cancelled');
     }
 
-    await prisma.$transaction([
-      prisma.trip.update({
+    if (trip.status === TripStatus.DISPATCHED) {
+      await prisma.$transaction([
+        prisma.trip.update({
+          where: { id: tripId },
+          data: { status: TripStatus.CANCELLED, endTime: new Date() },
+        }),
+        prisma.vehicle.update({
+          where: { id: trip.vehicleId },
+          data: { status: VehicleStatus.AVAILABLE },
+        }),
+        prisma.driver.update({
+          where: { id: trip.driverId },
+          data: { status: DriverStatus.AVAILABLE },
+        }),
+      ]);
+    } else {
+      await prisma.trip.update({
         where: { id: tripId },
         data: { status: TripStatus.CANCELLED, endTime: new Date() },
-      }),
-      prisma.vehicle.update({
-        where: { id: trip.vehicleId },
-        data: { status: VehicleStatus.AVAILABLE },
-      }),
-      prisma.driver.update({
-        where: { id: trip.driverId },
-        data: { status: DriverStatus.AVAILABLE },
-      }),
-    ]);
+      });
+    }
     return true;
   }
 

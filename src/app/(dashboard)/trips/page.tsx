@@ -3,8 +3,18 @@
 import { useEffect, useState, useCallback } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 
-interface Vehicle { id: string; plateNumber: string; model: string; }
-interface Driver { id: string; name: string; licenseNumber: string; }
+interface Vehicle {
+  id: string;
+  licensePlate: string;
+  make: string;
+  model: string;
+}
+interface Driver {
+  id: string;
+  firstName: string;
+  lastName: string;
+  licenseNumber: string;
+}
 interface Trip {
   id: string;
   origin: string;
@@ -187,7 +197,7 @@ export default function TripsPage() {
               >
                 <option value="">Select vehicle…</option>
                 {vehicles.map(v => (
-                  <option key={v.id} value={v.id}>{v.plateNumber} — {v.model}</option>
+                  <option key={v.id} value={v.id}>{v.licensePlate} — {v.make} {v.model}</option>
                 ))}
               </select>
             </div>
@@ -201,7 +211,7 @@ export default function TripsPage() {
               >
                 <option value="">Select driver…</option>
                 {drivers.map(d => (
-                  <option key={d.id} value={d.id}>{d.name} ({d.licenseNumber})</option>
+                  <option key={d.id} value={d.id}>{d.firstName} {d.lastName} ({d.licenseNumber})</option>
                 ))}
               </select>
             </div>
@@ -249,10 +259,12 @@ export default function TripsPage() {
                     <td className="px-6 py-4 font-medium">
                       {trip.origin} → {trip.destination}
                     </td>
-                    <td className="px-6 py-4">{trip.requiredCargo}</td>
-                    <td className="px-6 py-4">{trip.plannedDistance}</td>
-                    <td className="px-6 py-4">{trip.vehicle?.plateNumber ?? '—'}</td>
-                    <td className="px-6 py-4">{trip.driver?.name ?? '—'}</td>
+                    <td className="px-6 py-4">{trip.requiredCargo ?? '—'}</td>
+                    <td className="px-6 py-4">—</td>
+                    <td className="px-6 py-4">{trip.vehicle?.licensePlate ?? '—'}</td>
+                    <td className="px-6 py-4">
+                      {trip.driver ? `${trip.driver.firstName} ${trip.driver.lastName}` : '—'}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[trip.status] ?? 'bg-gray-700 text-gray-300'}`}>
                         {trip.status}

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { TripService } from '@/lib/tripService';
-import { success, error } from '../../../lib/apiResponse';
+import { success, error } from '@/lib/apiResponse';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/trips – list all trips (requires auth)

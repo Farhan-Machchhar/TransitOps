@@ -6,13 +6,15 @@ import { success, error } from '@/lib/apiResponse';
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json(error('Authentication required', 'UNAUTHORIZED'), { status: 401 });
+
+  const { id } = await params;
   
   try {
-    await TripService.dispatchTrip(params.id);
+    await TripService.dispatchTrip(id);
     return NextResponse.json(success({ message: 'Trip dispatched successfully' }));
   } catch (e: any) {
     return NextResponse.json(error(e.message ?? 'Failed to dispatch trip', 'DISPATCH_TRIP_ERROR'), { status: 400 });
