@@ -1,7 +1,6 @@
-import { PrismaClient, Role, VehicleStatus, DriverStatus, TripStatus } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
+import { Role, VehicleStatus, DriverStatus, TripStatus } from "@prisma/client";
 import bcrypt from 'bcrypt';
-
-const prisma = new PrismaClient();
 
 async function main() {
   console.log('Starting seed...');
