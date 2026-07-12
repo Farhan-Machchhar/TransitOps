@@ -3,57 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
-import {
-  Mail,
-  Lock,
-  Loader2,
-  Sliders,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  HelpCircle,
-  ShieldCheck
-} from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-type DemoAccount = {
-  role: string;
-  email: string;
-  password: string;
-};
-
-const demoAccounts: DemoAccount[] = [
-  {
-    role: "Fleet Manager",
-    email: "fleet@demo.com",
-    password: "Demo@123",
-  },
-  {
-    role: "Dispatcher",
-    email: "dispatcher@demo.com",
-    password: "Demo@123",
-  },
-  {
-    role: "Safety Officer",
-    email: "safety@demo.com",
-    password: "Demo@123",
-  },
-  {
-    role: "Financial Analyst",
-    email: "finance@demo.com",
-    password: "Demo@123",
-  },
-];
+import { Mail, Lock, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -61,9 +14,9 @@ export default function LoginPage() {
   // Standard Form State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Form Validation & Interaction States
   const [emailError, setEmailError] = useState("");
@@ -120,345 +73,169 @@ export default function LoginPage() {
     }
   };
 
-  const handleRoleChange = (val: string | null) => {
-    setRole(val || "");
-    setRoleError(val ? "" : "Please select your role to proceed");
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    await signIn("google", { callbackUrl: "/dashboard" });
+    // No need to set loading to false as it redirects
   };
-
-  // Handle actual submission (with mock simulation fallback)
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Perform final check
-    const mailErr = checkEmail(email);
-    const passErr = checkPassword(password);
-    const rlErr = role ? "" : "Please select your role to proceed";
-
-    setEmailError(mailErr);
-    setPasswordError(passErr);
-    setRoleError(rlErr);
-    setTouched({ email: true, password: true });
-
-    if (mailErr || passErr || rlErr) {
-      return;
-    }
-
-    setIsLoading(true);
-    setActiveError(null);
-
-    // If simulating special errors, handle that instead of NextAuth
-    if (email === "error@transitops.dev") {
-      setTimeout(() => {
-        setIsLoading(false);
-        setActiveError("invalid-credentials");
-      }, 1500);
-      return;
-    }
-    if (email === "locked@transitops.dev") {
-      setTimeout(() => {
-        setIsLoading(false);
-        setIsLocked(true);
-        setLockTimeRemaining(300);
-        setActiveError("locked");
-      }, 1500);
-      return;
-    }
-    if (email === "mismatch@transitops.dev") {
-      setTimeout(() => {
-        setIsLoading(false);
-        setActiveError("role-mismatch");
-      }, 1500);
-      return;
-    }
-    if (email === "network@transitops.dev") {
-      setTimeout(() => {
-        setIsLoading(false);
-        setActiveError("network-error");
-      }, 1500);
-      return;
-    }
-    if (email === "server@transitops.dev") {
-      setTimeout(() => {
-        setIsLoading(false);
-        setActiveError("server-error");
-      }, 1500);
-      return;
-    }
-
-    // Default successful login simulation
-    const result = await signIn("credentials", {
-      email,
-      password,
-      role,
-      redirect: false,
-    });
-
-    setIsLoading(false);
-
-    if (result?.error) {
-      setActiveError("invalid-credentials");
-      return;
-    }
-
-    router.push("/dashboard");
-    router.refresh();
-  };
-
-  const loadDemoAccount = (account: DemoAccount) => {
-    setEmail(account.email);
-    setPassword(account.password);
-    setRole(account.role);
-
-    setActiveError(null);
-  };
-
-  const isFormValid = email && password && role && !emailError && !passwordError && !roleError;
 
   return (
-    <>
-      <Card className="w-full bg-white border border-slate-200 rounded-2xl shadow-xl shadow-slate-200/40 p-8 transition-all duration-200 relative overflow-hidden">
-        {/* Decorative Green Accent Border on Top */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-[#22C55E]" />
+    <div className="flex min-h-screen w-full bg-background text-foreground">
+      {/* Left Panel - Hero */}
+      <div className="hidden lg:flex w-1/2 relative bg-zinc-950 flex-col justify-between p-12 overflow-hidden border-r border-border">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/login-hero.png"
+            alt="TransitOps Fleet"
+            fill
+            className="object-cover opacity-60"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
+        </div>
 
-        {/* Card Header */}
-        <CardHeader className="p-0 mb-6 space-y-1">
-          <CardTitle className="text-xl font-bold tracking-tight text-slate-900">
-            Sign in to your account
-          </CardTitle>
-          <CardDescription className="text-sm text-slate-500">
-            Enter your credentials to continue
-          </CardDescription>
-        </CardHeader>
+        {/* Content */}
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-20">
+            <div className="h-8 w-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+              <span className="text-zinc-950 font-bold text-xl leading-none">T</span>
+            </div>
+            <span className="text-xl font-bold tracking-tight text-white">TransitOps</span>
+          </div>
 
-        {/* Error Alert Display */}
-        {activeError && !isLocked && (
-          <div className="mb-5 p-3.5 bg-red-50  border border-red-200 text-red-700 rounded-[12px] flex items-start gap-2.5 animate-fadeIn">
-            <AlertCircle className="h-4.5 w-4.5 text-red-700 shrink-0 mt-0.5" />
-            <div className="text-xs text-red-700 leading-normal">
-              {activeError === "invalid-credentials" && "Invalid email or password. Please double-check your credentials."}
-              {activeError === "role-mismatch" && "Role Mismatch: The credentials supplied are not authorized for this specific role."}
-              {activeError === "network-error" && "Network error. Failed to establish connection to the server."}
-              {activeError === "server-error" && "Server Error (500). Internal server error occurred."}
+          <div className="max-w-md mt-auto">
+            <h1 className="text-4xl font-bold text-white mb-4 tracking-tight">Visibility, Efficiency, Sustainability</h1>
+            <p className="text-zinc-400 text-lg mb-8">
+              The Most Efficient Fleet Network. Manage your operations in real-time with unparalleled precision.
+            </p>
+            <Link
+              href="#"
+              className="inline-flex items-center text-emerald-400 font-medium hover:text-emerald-300 transition-colors"
+            >
+              Join TransitOps Sign Up <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Form */}
+      <div className="flex-1 flex flex-col justify-between p-8 sm:p-12 lg:p-16 relative">
+        <div className="flex justify-end hidden sm:flex">
+          <p className="text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <Link href="#" className="font-medium text-emerald-500 hover:text-emerald-400">
+              Sign Up
+            </Link>
+          </p>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+          <div className="mb-10 text-center lg:text-left">
+            {/* Mobile Logo */}
+            <div className="flex lg:hidden items-center justify-center gap-2 mb-8">
+              <div className="h-8 w-8 bg-emerald-500 rounded-lg flex items-center justify-center">
+                <span className="text-zinc-950 font-bold text-xl leading-none">T</span>
+              </div>
+              <span className="text-xl font-bold tracking-tight text-foreground">TransitOps</span>
+            </div>
+
+            <h2 className="text-3xl font-bold tracking-tight mb-2">Dashboard Log In</h2>
+            <p className="text-muted-foreground">Enter your credentials to access your fleet operations.</p>
+          </div>
+
+          <Button
+            variant="outline"
+            type="button"
+            className="w-full mb-6 border-border bg-transparent hover:bg-zinc-900 h-12 relative flex items-center justify-center gap-2"
+            onClick={handleGoogleSignIn}
+            disabled={googleLoading || loading}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4"
+              />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"
+              />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335"
+              />
+            </svg>
+            {googleLoading ? "Connecting..." : "Continue with Google"}
+          </Button>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
             </div>
           </div>
-        )}
 
-        {/* Account Locked UI Alert Display */}
-        {isLocked && (
-          <div className="mb-5 p-3.5 bg-amber-50 text-amber-700 border border-amber-500/20 rounded-[12px] flex flex-col gap-2.5 animate-fadeIn">
-            <div className="flex items-start gap-2.5">
-              <AlertCircle className="h-4.5 w-4.5 text-amber-400 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-200 leading-normal">
-                Account locked after 5 failed login attempts. Please contact your system administrator or reset your password.
-              </div>
-            </div>
-            <div className="flex justify-between items-center text-xs border-amber-500/10 pt-2.5">
-              <span className="text-amber-400/80 font-medium">
-                Locked countdown: <span className="font-mono text-amber-400 font-bold">{formatTime(lockTimeRemaining)}</span>
-              </span>
-              <Link
-                href="/forgot-password"
-                className="text-slate-900 hover:underline hover:text-[#22C55E] transition-colors"
-              >
-                Reset Password
-              </Link>
-            </div>
-          </div>
-        )}
+          <form onSubmit={handleLogin} className="space-y-4">
+            {error && <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md text-sm font-medium text-red-500 text-center">{error}</div>}
 
-        {/* Main Form */}
-        <form onSubmit={handleLoginSubmit} noValidate className={isLoading ? "opacity-60 pointer-events-none transition-opacity duration-200" : ""}>
-          <CardContent className="p-0 space-y-4">
-
-            {/* Email Input Field */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <label htmlFor="email" className="text-xs font-semibold text-slate-900/95">
-                  Email Address
-                </label>
-                {touched.email && emailError && (
-                  <span className="text-[11px] text-red-400 font-medium">{emailError}</span>
-                )}
-              </div>
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium leading-none">Email Address</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-3 flex items-center text-emerald-400 transition-colors">
-                  <Mail className="h-4 w-4" />
-                </span>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="dispatcher@transitops.dev"
+                  placeholder="name@transitops.dev"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (touched.email) setEmailError(checkEmail(e.target.value));
-                  }}
-                  onBlur={() => handleBlur("email")}
-                  disabled={isLoading || isLocked}
-                  aria-invalid={!!(touched.email && emailError)}
-                  className="pl-9 bg-white border-slate-300 hover:border-slate-400 focus-visible:border-[#22C55E] focus-visible:ring-[#22C55E]/20 text-slate-900 focus:border-emerald-500 focus:ring-4 focus:ring-4 rounded-[12px] h-10 placeholder:text-slate-400 text-sm"
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-12 pr-10 bg-zinc-900/50 border-border focus-visible:ring-emerald-500"
+                  required
                 />
+                <Mail className="absolute right-3 top-3.5 h-5 w-5 text-muted-foreground" />
               </div>
             </div>
 
-            {/* Password Input Field */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <label htmlFor="password" className="text-xs font-semibold text-slate-900/95">
-                  Password
-                </label>
-                {touched.password && passwordError && (
-                  <span className="text-[11px] text-red-400 font-medium">{passwordError}</span>
-                )}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-sm font-medium leading-none">Password</label>
+                <Link href="#" className="text-sm text-emerald-500 hover:text-emerald-400 font-medium">
+                  Forgot Password?
+                </Link>
               </div>
               <div className="relative">
-                <span className="absolute inset-y-0 left-3 flex items-center text-emerald-400 transition-colors">
-                  <Lock className="h-4 w-4" />
-                </span>
                 <Input
                   id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter secure password"
+                  type="password"
+                  placeholder="••••••••"
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (touched.password) setPasswordError(checkPassword(e.target.value));
-                  }}
-                  onBlur={() => handleBlur("password")}
-                  disabled={isLoading || isLocked}
-                  aria-invalid={!!(touched.password && passwordError)}
-                  className="pl-9 bg-white border-slate-300 hover:border-slate-400 focus-visible:border-[#22C55E] focus-visible:ring-[#22C55E]/20 text-slate-900 focus:border-emerald-500 focus:ring-4 focus:ring-4 rounded-[12px] h-10 placeholder:text-slate-400 text-sm"
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 pr-10 bg-zinc-900/50 border-border focus-visible:ring-emerald-500"
+                  required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                  className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-emerald-500 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                <Lock className="absolute right-3 top-3.5 h-5 w-5 text-muted-foreground" />
               </div>
             </div>
 
-            {/* Role Select Dropdown Field */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-semibold text-slate-900/95">
-                  Assigned RBAC Role
-                </label>
-                {roleError && (
-                  <span className="text-[11px] text-red-400 font-medium">{roleError}</span>
-                )}
-              </div>
-              <Select value={role} onValueChange={handleRoleChange} disabled={isLoading || isLocked}>
-                <SelectTrigger
-                  aria-invalid={!!roleError}
-                  className="w-full h-10 bg-white border-slate-200 hover:border-slate-50 focus-visible:border-[#22C55E] focus-visible:ring-[#22C55E]/20 text-slate-900 rounded-[12px] flex items-center justify-between text-sm pr-2 pl-3 cursor-pointer"
-                >
-                  <SelectValue placeholder="Choose profile role" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-white/10 text-slate-900 rounded-xl shadow-2xl p-1 animate-fadeIn">
-                  <SelectItem value="Fleet Manager" className="rounded-md py-2 text-sm hover:bg-slate-300 focus:bg-slate-300/[0.04] cursor-pointer">
-                    Fleet Manager
-                  </SelectItem>
-                  <SelectItem value="Dispatcher" className="rounded-md py-2 text-sm hover:bg-slate-300 focus:bg-slate-300/[0.04] cursor-pointer">
-                    Dispatcher
-                  </SelectItem>
-                  <SelectItem value="Safety Officer" className="rounded-md py-2 text-sm hover:bg-slate-300 focus:bg-slate-300/[0.04] cursor-pointer">
-                    Safety Officer
-                  </SelectItem>
-                  <SelectItem value="Financial Analyst" className="rounded-md py-2 text-sm hover:bg-slate-300 focus:bg-slate-300/[0.04] cursor-pointer">
-                    Financial Analyst
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Remember Me Checkbox & Forgot Password Link */}
-            <div className="flex items-center justify-between text-xs pt-1.5">
-              <label className="flex items-center gap-2 cursor-pointer text-slate-600 hover:text-slate-900 select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  disabled={isLoading || isLocked}
-                  className="accent-[#22C55E] h-4 w-4 rounded border-white/10 bg-emerald-50 border border-emerald-100 rounded-xl p-4 focus:ring-[#22C55E]/20 focus:ring-offset-[#151C28] cursor-pointer"
-                />
-                <span>Remember me</span>
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-emerald-500 hover:text-emerald-400 hover:underline transition-colors cursor-pointer"
-              >
-                Forgot password?
-              </Link>
-            </div>
-          </CardContent>
-
-          {/* Card Footer Actions */}
-          <CardFooter className="p-0 m-4 flex flex-col gap-4">
             <Button
+              className="w-full h-12 mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-medium group flex items-center justify-center gap-2"
               type="submit"
-              disabled={isLoading || isLocked || !isFormValid}
-              className="w-full h-11 rounded-xl bg-[#22C55E] hover:bg-[#16A34A] text-white font-semibold shadow-md shadow-emerald-200 transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
+              disabled={loading || googleLoading}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Verifying Credentials...
-                </>
-              ) : (
-                "Sign In"
-              )}
+              {loading ? "Signing in..." : "Sign in to Dashboard"}
+              {!loading && <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />}
             </Button>
+          </form>
+        </div>
 
-            {/* Information Card */}
-            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2.5">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <p className="text-xs text-slate-600">
-                Your role determines the dashboards and features available after sign in.
-              </p>
-            </div>
-          </CardFooter>
-
-          <div className="space-y-3 mb-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Demo Accounts
-            </p>
-
-            <div className="grid grid-cols-2 gap-2">
-              {demoAccounts.map((account) => (
-                <button
-                  key={account.role}
-                  type="button"
-                  onClick={() => loadDemoAccount(account)}
-                  className="
-                    rounded-xl
-                    border
-                    border-slate-200
-                    bg-white
-                    px-3
-                    py-2
-                    text-left
-                    transition-all
-                    hover:border-emerald-500
-                    hover:bg-emerald-50
-                    hover:shadow-sm
-                "
-                >
-                  <p className="text-sm font-semibold text-slate-800">
-                    {account.role}
-                  </p>
-
-                  <p className="text-xs text-slate-500">
-                    Load demo account
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-        </form>
-      </Card>
-    </>
+        <div className="flex justify-center sm:justify-start mt-8 text-xs text-muted-foreground">
+          © {new Date().getFullYear()} TransitOps Inc. All rights reserved.
+        </div>
+      </div>
+    </div>
   );
 }

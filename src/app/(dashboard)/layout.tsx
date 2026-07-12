@@ -1,4 +1,5 @@
-// app/(dashboard)/layout.tsx
+import { NavSidebar } from "@/components/shared/nav-sidebar";
+import { TopBar } from "@/components/shared/top-bar";
 
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
@@ -52,37 +53,14 @@ export default async function DashboardLayout({
   // ------------------------------------
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-
-      {/* Sidebar */}
-
-      <aside className="hidden lg:flex w-[280px] shrink-0 border-r border-slate-200 bg-white">
-        <Sidebar user={user} />
-      </aside>
-
-      {/* Mobile Sidebar */}
-      {/* Drawer will be added later */}
-
-      <div className="flex flex-1 flex-col min-w-0">
-
-        {/* Top Navigation */}
-
-        <TopNavbar user={user} />
-
-        {/* Page Content */}
-
-        <main className="flex-1 overflow-y-auto">
-
-          <div className="mx-auto w-full max-w-[1800px] p-6 lg:p-8">
-
-            {children}
-
-          </div>
-
+    <div className="flex h-screen overflow-hidden bg-background">
+      <NavSidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <main className="flex-1 overflow-y-auto p-8">
+          {children}
         </main>
-
       </div>
-
     </div>
   );
 }

@@ -68,9 +68,9 @@ export function NavSidebar() {
   const visibleRoutes = routes.filter((route) => !role || route.roles.includes(role));
 
   return (
-    <div className="flex h-full w-64 flex-col bg-gray-900 text-gray-100">
-      <div className="flex h-16 items-center px-6 border-b border-gray-800">
-        <span className="text-xl font-bold tracking-tight">TransitOps</span>
+    <div className="flex h-full w-64 flex-col bg-sidebar border-r border-sidebar-border text-sidebar-foreground">
+      <div className="flex h-16 items-center px-6 border-b border-sidebar-border">
+        <span className="text-xl font-bold tracking-tight text-primary">TransitOps</span>
       </div>
       <div className="flex-1 overflow-y-auto py-4">
         <nav className="space-y-1 px-3">
@@ -79,14 +79,16 @@ export function NavSidebar() {
               key={route.href}
               href={route.href}
               className={cn(
-                "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-800 hover:text-white transition-colors",
-                pathname === route.href ? "bg-gray-800 text-white" : "text-gray-300"
+                "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                pathname === route.href 
+                  ? "bg-primary text-primary-foreground" 
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
             >
               <route.icon
                 className={cn(
                   "mr-3 flex-shrink-0 h-5 w-5",
-                  pathname === route.href ? "text-white" : "text-gray-400 group-hover:text-white"
+                  pathname === route.href ? "text-primary-foreground" : "text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground"
                 )}
                 aria-hidden="true"
               />
@@ -95,18 +97,18 @@ export function NavSidebar() {
           ))}
         </nav>
       </div>
-      <div className="p-4 border-t border-gray-800">
-        <div className="flex items-center px-3 py-2 mb-2 text-sm text-gray-300">
+      <div className="p-4 border-t border-sidebar-border">
+        <div className="flex items-center px-3 py-2 mb-2 text-sm text-sidebar-foreground/70">
           <div className="flex-1 min-w-0">
-            <p className="truncate font-medium">{session?.user?.email}</p>
-            <p className="truncate text-xs text-gray-500">{role}</p>
+            <p className="truncate font-medium text-sidebar-foreground">{session?.user?.email}</p>
+            <p className="truncate text-xs">{role}</p>
           </div>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="group flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+          className="group flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
         >
-          <LogOut className="mr-3 h-5 w-5 text-gray-400 group-hover:text-white" />
+          <LogOut className="mr-3 h-5 w-5 text-sidebar-foreground/50 group-hover:text-sidebar-accent-foreground" />
           Sign out
         </button>
       </div>
